@@ -45,10 +45,21 @@ export default function UniversitiesPage() {
     try {
       const res = await fetch('/api/universities')
       const data = await res.json()
-      setUniversities(data)
-      setFilteredUniversities(data)
+
+      if (data.error) {
+        console.error('API error:', data.error)
+        setUniversities([])
+        setFilteredUniversities([])
+        return
+      }
+
+      const universities = Array.isArray(data) ? data : []
+      setUniversities(universities)
+      setFilteredUniversities(universities)
     } catch (error) {
       console.error('Failed to fetch universities:', error)
+      setUniversities([])
+      setFilteredUniversities([])
     }
   }
 
@@ -56,9 +67,18 @@ export default function UniversitiesPage() {
     try {
       const res = await fetch('/api/countries')
       const data = await res.json()
-      setCountries(data)
+
+      if (data.error) {
+        console.error('API error:', data.error)
+        setCountries([])
+        return
+      }
+
+      const countries = Array.isArray(data) ? data : []
+      setCountries(countries)
     } catch (error) {
       console.error('Failed to fetch countries:', error)
+      setCountries([])
     }
   }
 
