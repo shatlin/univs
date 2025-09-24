@@ -14,12 +14,13 @@ import Link from 'next/link'
 export default function UniversitiesPage() {
   const [universities, setUniversities] = useState<any[]>([])
   const [filteredUniversities, setFilteredUniversities] = useState<any[]>([])
+  const [countries, setCountries] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCountry, setSelectedCountry] = useState('all')
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [newUniversity, setNewUniversity] = useState({
     name: '',
-    country: '',
+    countryId: '',
     courseName: '',
     entryRequirements: '',
     ieltsRequired: '',
@@ -31,10 +32,9 @@ export default function UniversitiesPage() {
     notes: ''
   })
 
-  const countries = ['UK', 'Italy', 'France', 'Netherlands', 'Germany']
-
   useEffect(() => {
     fetchUniversities()
+    fetchCountries()
   }, [])
 
   useEffect(() => {
@@ -52,11 +52,21 @@ export default function UniversitiesPage() {
     }
   }
 
+  const fetchCountries = async () => {
+    try {
+      const res = await fetch('/api/countries')
+      const data = await res.json()
+      setCountries(data)
+    } catch (error) {
+      console.error('Failed to fetch countries:', error)
+    }
+  }
+
   const filterUniversities = () => {
     let filtered = universities
 
     if (selectedCountry !== 'all') {
-      filtered = filtered.filter(u => u.country === selectedCountry)
+      filtered = filtered.filter(u => u.countryId === selectedCountry)
     }
 
     if (searchTerm) {
@@ -177,15 +187,17 @@ export default function UniversitiesPage() {
                   <div>
                     <Label htmlFor="country">Country *</Label>
                     <Select
-                      value={newUniversity.country}
-                      onValueChange={(value) => setNewUniversity({...newUniversity, country: value})}
+                      value={newUniversity.countryId}
+                      onValueChange={(value) => setNewUniversity({...newUniversity, countryId: value})}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select country" />
                       </SelectTrigger>
                       <SelectContent>
                         {countries.map(country => (
-                          <SelectItem key={country} value={country}>{country}</SelectItem>
+                          <SelectItem key={country.id} value={country.id}>
+                            {country.flag} {country.name}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -301,7 +313,9 @@ export default function UniversitiesPage() {
           <SelectContent>
             <SelectItem value="all">All Countries</SelectItem>
             {countries.map(country => (
-              <SelectItem key={country} value={country}>{country}</SelectItem>
+              <SelectItem key={country.id} value={country.id}>
+                {country.flag} {country.name} ({country._count?.universities || 0})
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -316,7 +330,9 @@ export default function UniversitiesPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle className="text-lg hover:text-blue-600 transition-colors">{university.name}</CardTitle>
-                    <CardDescription>{university.location}, {university.country}</CardDescription>
+                    <CardDescription>
+                      {university.location}, {university.country?.name || university.country} {university.country?.flag}
+                    </CardDescription>
                   </div>
                   {applicationStatus && (
                     <Badge variant={getStatusColor(applicationStatus)}>

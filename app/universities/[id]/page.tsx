@@ -18,7 +18,12 @@ import Link from 'next/link'
 interface UniversityDetail {
   id: string
   name: string
-  country: string
+  country?: {
+    name: string
+    flag?: string
+    code: string
+  }
+  countryId?: string
   location?: string
   ranking?: number
   tier?: string
@@ -172,7 +177,7 @@ export default function UniversityDetailPage() {
             <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
               <span className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
-                {university.location}, {university.country}
+                {university.location}, {university.country?.name || 'Unknown'} {university.country?.flag}
               </span>
               {university.ranking && (
                 <span className="flex items-center gap-1">
