@@ -311,11 +311,11 @@ export default function UniversitiesPage() {
         {filteredUniversities.map((university) => {
           const applicationStatus = getApplicationStatus(university.applications)
           return (
-            <Card key={university.id}>
-              <CardHeader>
+            <Card key={university.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardHeader onClick={() => window.location.href = `/universities/${university.id}`}>
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-lg">{university.name}</CardTitle>
+                    <CardTitle className="text-lg hover:text-blue-600 transition-colors">{university.name}</CardTitle>
                     <CardDescription>{university.location}, {university.country}</CardDescription>
                   </div>
                   {applicationStatus && (
@@ -343,9 +343,13 @@ export default function UniversitiesPage() {
                     <p><strong>Entry Requirements:</strong> {university.entryRequirements}</p>
                   )}
                   <div className="flex gap-2 pt-4">
+                    <Link href={`/universities/${university.id}`}>
+                      <Button size="sm">View Details</Button>
+                    </Link>
                     {!applicationStatus && (
                       <Button
                         size="sm"
+                        variant="outline"
                         onClick={() => handleCreateApplication(university.id)}
                       >
                         Start Application
@@ -361,7 +365,7 @@ export default function UniversitiesPage() {
                     {university.website && (
                       <a href={university.website} target="_blank" rel="noopener noreferrer">
                         <Button size="sm" variant="outline">
-                          Visit Website
+                          Website
                         </Button>
                       </a>
                     )}

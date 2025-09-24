@@ -14,6 +14,21 @@ export async function GET(
             todos: true,
             documents: true
           }
+        },
+        courses: {
+          orderBy: {
+            name: 'asc'
+          }
+        },
+        testRequirements: {
+          orderBy: {
+            testDate: 'asc'
+          }
+        },
+        keyDates: {
+          orderBy: {
+            date: 'asc'
+          }
         }
       }
     })

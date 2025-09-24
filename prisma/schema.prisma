@@ -23,9 +23,36 @@ model University {
   location          String?
   website           String?
   notes             String?
+
+  // Additional fields for comprehensive info
+  tier              String?       // Tier 1, Tier A, etc.
+  category          String?       // Reach, Match, Safety
+  ibRequirement     String?       // IB score requirement
+  aLevelRequirement String?       // A-Level requirement
+  mathsRequirement  String?       // Specific maths requirement
+  admissionTest     String?       // TMUA, STEP, etc.
+  testDeadline      DateTime?     // Test deadline
+  applicationDeadline DateTime?   // Application deadline
+  decisionDate      DateTime?     // Expected decision date
+
+  // Career and prospects
+  employmentRate    Float?        // Employment rate %
+  averageSalary     Float?        // Average starting salary
+  majorRecruiters   String?       // Major recruiting companies
+  industryLinks     String?       // Industry connections
+  researchAreas     String?       // Key research areas
+
+  // Living and costs
+  livingCosts       Float?        // Annual living costs
+  accommodation     String?       // Accommodation info
+  campusInfo        String?       // Campus information
+
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   applications      Application[]
+  courses           Course[]
+  testRequirements  TestRequirement[]
+  keyDates          KeyDate[]
 }
 
 model Application {
@@ -156,4 +183,49 @@ enum DeadlineType {
   FINANCIAL
   VISA
   OTHER
+}
+
+model Course {
+  id            String     @id @default(cuid())
+  universityId  String
+  university    University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  name          String
+  code          String?
+  duration      String?    // 3 years, 4 years (MEng), etc.
+  degree        String?    // BSc, MEng, MSci, etc.
+  description   String?
+  modules       String?    // Key modules/subjects
+  careerPaths   String?    // Career opportunities
+  prerequisites String?    // Prerequisites
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model TestRequirement {
+  id            String     @id @default(cuid())
+  universityId  String
+  university    University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  testName      String     // TMUA, STEP, ESAT, etc.
+  required      Boolean    @default(false)
+  recommended   Boolean    @default(false)
+  testDate      DateTime?
+  registrationDeadline DateTime?
+  minScore      String?    // Minimum score required
+  typicalScore  String?    // Typical successful score
+  notes         String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model KeyDate {
+  id            String     @id @default(cuid())
+  universityId  String
+  university    University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  title         String
+  date          DateTime
+  type          String     // Application, Test, Interview, Decision, etc.
+  description   String?
+  critical      Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 }
