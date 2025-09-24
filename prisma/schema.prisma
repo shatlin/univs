@@ -1,0 +1,159 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model University {
+  id                String        @id @default(cuid())
+  name              String
+  country           String
+  ranking           Int?
+  ucasCode          String?       @unique
+  courseName        String?
+  entryRequirements String?
+  ieltsRequired     Float?
+  tuitionFee        Float?
+  location          String?
+  website           String?
+  notes             String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  applications      Application[]
+}
+
+model Application {
+  id                String              @id @default(cuid())
+  universityId      String
+  university        University          @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  status            ApplicationStatus   @default(NOT_STARTED)
+  applicationDate   DateTime?
+  deadline          DateTime?
+  personalStatement String?
+  reference1Status  ReferenceStatus     @default(NOT_REQUESTED)
+  reference2Status  ReferenceStatus     @default(NOT_REQUESTED)
+  transcriptStatus  DocumentStatus      @default(NOT_SUBMITTED)
+  ieltsStatus       DocumentStatus      @default(NOT_SUBMITTED)
+  otherDocuments    String?
+  offerReceived     Boolean             @default(false)
+  offerType         String?
+  offerConditions   String?
+  decisionDeadline  DateTime?
+  notes             String?
+  priority          Priority            @default(MEDIUM)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  todos             Todo[]
+  documents         Document[]
+}
+
+model Todo {
+  id            String      @id @default(cuid())
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  dueDate       DateTime?
+  completed     Boolean     @default(false)
+  priority      Priority    @default(MEDIUM)
+  category      TodoCategory @default(GENERAL)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Document {
+  id            String         @id @default(cuid())
+  applicationId String
+  application   Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  name          String
+  type          DocumentType
+  status        DocumentStatus @default(NOT_SUBMITTED)
+  submittedDate DateTime?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Deadline {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  type        DeadlineType
+  critical    Boolean  @default(false)
+  reminder    DateTime?
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum ApplicationStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  UNDER_REVIEW
+  INTERVIEW_SCHEDULED
+  OFFER_RECEIVED
+  OFFER_ACCEPTED
+  OFFER_DECLINED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ReferenceStatus {
+  NOT_REQUESTED
+  REQUESTED
+  RECEIVED
+  SUBMITTED
+}
+
+enum DocumentStatus {
+  NOT_SUBMITTED
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TodoCategory {
+  GENERAL
+  DOCUMENT
+  DEADLINE
+  INTERVIEW
+  FINANCIAL
+  VISA
+  ACCOMMODATION
+}
+
+enum DocumentType {
+  TRANSCRIPT
+  IELTS
+  PERSONAL_STATEMENT
+  REFERENCE
+  PASSPORT
+  FINANCIAL
+  OTHER
+}
+
+enum DeadlineType {
+  APPLICATION
+  DOCUMENT
+  INTERVIEW
+  DECISION
+  FINANCIAL
+  VISA
+  OTHER
+}
