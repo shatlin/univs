@@ -6,6 +6,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const countryId = searchParams.get('countryId')
     const search = searchParams.get('search')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '10')
+    const tier = searchParams.get('tier')
+    const sortBy = searchParams.get('sortBy') || 'ranking' // ranking, name, country
 
     const where: any = {}
 
@@ -21,6 +25,34 @@ export async function GET(request: NextRequest) {
       ]
     }
 
+    if (tier) {
+      where.recommendationTier = tier
+    }
+
+    // Get total count for pagination
+    const total = await prisma.university.count({ where })
+
+    // Determine sort order
+    let orderBy: any = []
+    switch (sortBy) {
+      case 'name':
+        orderBy = [{ name: 'asc' }]
+        break
+      case 'country':
+        orderBy = [
+          { country: { name: 'asc' } },
+          { rankingScore: 'desc' }
+        ]
+        break
+      case 'ranking':
+      default:
+        orderBy = [
+          { rankingScore: 'desc' },
+          { ranking: 'asc' },
+          { name: 'asc' }
+        ]
+    }
+
     const universities = await prisma.university.findMany({
       where,
       include: {
@@ -32,14 +64,22 @@ export async function GET(request: NextRequest) {
         },
         country: true
       },
-      orderBy: [
-        { country: { name: 'asc' } },
-        { name: 'asc' }
-      ]
+      orderBy,
+      skip: (page - 1) * limit,
+      take: limit
     })
 
-    return NextResponse.json(universities)
+    return NextResponse.json({
+      universities,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error) {
+    console.error('Error fetching universities:', error)
     return NextResponse.json({ error: 'Failed to fetch universities' }, { status: 500 })
   }
 }

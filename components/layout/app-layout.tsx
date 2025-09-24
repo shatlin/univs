@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -41,29 +41,25 @@ interface AppLayoutProps {
 export default function AppLayout({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const pathname = usePathname()
+  const [stats, setStats] = useState<any>(null)
+
+  useEffect(() => {
+    fetch('/api/stats')
+      .then(res => res.json())
+      .then(data => setStats(data))
+      .catch(err => console.error('Failed to fetch stats:', err))
+  }, [])
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: Home, badge: null },
-    { name: 'Universities', href: '/universities', icon: GraduationCap, badge: null },
-    { name: 'Applications', href: '/applications', icon: FileText, badge: '5' },
-    { name: 'Todo List', href: '/todos', icon: CheckSquare, badge: '12' },
-    { name: 'Deadlines', href: '/deadlines', icon: Calendar, badge: '3', badgeColor: 'destructive' },
+    { name: 'Dashboard', href: '/', icon: Home },
+    { name: 'My Profile', href: '/profile', icon: User },
+    { name: 'Universities', href: '/universities', icon: GraduationCap, badge: stats?.totalUniversities },
+    { name: 'Applications', href: '/applications', icon: FileText, badge: stats?.totalApplications },
+    { name: 'Todo List', href: '/todos', icon: CheckSquare, badge: stats?.activeTodos },
+    { name: 'Deadlines', href: '/deadlines', icon: Calendar, badge: stats?.urgentDeadlines, badgeColor: stats?.urgentDeadlines > 0 ? 'destructive' : null },
   ]
 
-  const regions = [
-    { name: 'United Kingdom', icon: '🇬🇧', count: 18 },
-    { name: 'Italy', icon: '🇮🇹', count: 3 },
-    { name: 'Netherlands', icon: '🇳🇱', count: 2 },
-    { name: 'Germany', icon: '🇩🇪', count: 2 },
-    { name: 'France', icon: '🇫🇷', count: 1 },
-  ]
 
-  const quickStats = [
-    { label: 'Days to Deadline', value: '67', icon: Clock, color: 'text-orange-500' },
-    { label: 'Active Applications', value: '5', icon: Target, color: 'text-blue-500' },
-    { label: 'Completed Tasks', value: '24/36', icon: CheckSquare, color: 'text-green-500' },
-    { label: 'Critical Items', value: '3', icon: AlertCircle, color: 'text-red-500' },
-  ]
 
   const isActive = (href: string) => {
     if (href === '/' && pathname === '/') return true
@@ -167,7 +163,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       <item.icon size={18} />
                       <span className="text-sm font-medium">{item.name}</span>
                     </div>
-                    {item.badge && (
+                    {item.badge > 0 && (
                       <Badge
                         variant={item.badgeColor as any || (active ? 'secondary' : 'default')}
                         className={active ? 'bg-white/20 text-white border-white/30' : ''}
@@ -179,46 +175,63 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 )
               })}
 
-              {/* Regions Section */}
-              <div className="mt-8 mb-4">
-                <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Regions
-                </h3>
-              </div>
-              {regions.map((region) => (
-                <button
-                  key={region.name}
-                  className="w-full flex items-center justify-between px-3 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg">{region.icon}</span>
-                    <span className="text-sm">{region.name}</span>
+              {/* Top Countries Section */}
+              {stats?.topCountries && stats.topCountries.length > 0 && (
+                <>
+                  <div className="mt-8 mb-4">
+                    <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Top Countries
+                    </h3>
                   </div>
-                  <span className="text-xs text-gray-500">{region.count}</span>
-                </button>
-              ))}
+                  {stats.topCountries.map((country: any) => (
+                    <Link
+                      key={country.name}
+                      href={`/universities?country=${country.name}`}
+                      className="w-full flex items-center justify-between px-3 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">{country.flag || '🌍'}</span>
+                        <span className="text-sm">{country.name}</span>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {country.count}
+                      </Badge>
+                    </Link>
+                  ))}
+                </>
+              )}
             </nav>
 
-            {/* Quick Stats */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                Quick Stats
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                {quickStats.map((stat) => (
-                  <div
-                    key={stat.label}
-                    className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2"
-                  >
-                    <div className="flex items-center gap-2">
-                      <stat.icon size={14} className={stat.color} />
-                      <span className="text-lg font-bold">{stat.value}</span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">{stat.label}</p>
+            {/* Application Progress */}
+            {stats && (
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                  Application Progress
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Universities</span>
+                    <span className="text-sm font-semibold">{stats.totalUniversities || 0}</span>
                   </div>
-                ))}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Active Applications</span>
+                    <span className="text-sm font-semibold">{stats.totalApplications || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Pending Tasks</span>
+                    <span className="text-sm font-semibold">{stats.activeTodos || 0}</span>
+                  </div>
+                  {stats.urgentDeadlines > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Urgent Deadlines</span>
+                      <Badge variant="destructive" className="text-xs">
+                        {stats.urgentDeadlines}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </aside>
 

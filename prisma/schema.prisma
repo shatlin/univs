@@ -30,6 +30,8 @@ model University {
   countryId         String
   country           Country       @relation(fields: [countryId], references: [id])
   ranking           Int?
+  rankingScore      Float?        // Custom ranking score for Damien
+  recommendationTier String?      // S, A, B, C tier recommendation
   ucasCode          String?       @unique
   courseName        String?
   entryRequirements String?
@@ -243,4 +245,50 @@ model KeyDate {
   critical      Boolean    @default(false)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
+}
+
+model StudentProfile {
+  id                  String   @id @default(cuid())
+  name                String
+  dateOfBirth         DateTime
+  currentGrade        String   // DP2, Grade 12, etc.
+  school              String
+
+  // IB Subjects and Grades
+  englishGrade        Int?     // 1-7
+  englishLevel        String?  // SL/HL
+  frenchGrade         Int?
+  frenchLevel         String?
+  mathGrade           Int?
+  mathLevel           String?
+  businessGrade       Int?
+  businessLevel       String?
+  physicsGrade        Int?
+  physicsLevel        String?
+  computerScienceGrade Int?
+  computerScienceLevel String?
+
+  // IB Core Components
+  casStatus           String?  // Below/Meeting/Exceeding expectations
+  extendedEssayStatus String?
+  tokStatus           String?
+
+  // Predicted Total Score
+  predictedTotal      Int?     // Out of 45
+
+  // Academic Interests
+  primaryInterests    String?  // JSON array of interests
+  additionalInterests String?  // JSON array
+
+  // University Preferences
+  preferredCountries  String?  // JSON array
+  careerGoals         String?
+
+  // Additional Notes
+  strengths           String?
+  areasForImprovement String?
+  teacherComments     String?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
