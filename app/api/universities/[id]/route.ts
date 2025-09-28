@@ -10,6 +10,7 @@ export async function GET(
     const university = await prisma.university.findUnique({
       where: { id },
       include: {
+        country: true,
         applications: {
           include: {
             todos: true,
@@ -30,6 +31,11 @@ export async function GET(
           orderBy: {
             date: 'asc'
           }
+        },
+        universityNotes: {
+          orderBy: {
+            createdAt: 'desc'
+          }
         }
       }
     })
@@ -40,6 +46,7 @@ export async function GET(
 
     return NextResponse.json(university)
   } catch (error) {
+    console.error('Error fetching university:', error)
     return NextResponse.json({ error: 'Failed to fetch university' }, { status: 500 })
   }
 }

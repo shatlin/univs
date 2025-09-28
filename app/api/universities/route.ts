@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const tier = searchParams.get('tier')
+    const category = searchParams.get('category')
     const sortBy = searchParams.get('sortBy') || 'ranking' // ranking, name, country
 
     const where: any = {}
@@ -27,6 +28,33 @@ export async function GET(request: NextRequest) {
 
     if (tier) {
       where.recommendationTier = tier
+    }
+
+    // Handle category filters
+    if (category && category !== 'all') {
+      switch (category) {
+        case 'best-fit':
+          where.notes = { contains: 'BEST FIT' }
+          break
+        case 'stretch':
+          where.notes = { contains: 'STRETCH' }
+          break
+        case 'safety':
+          where.notes = { contains: 'SAFETY' }
+          break
+        case 'eu-option':
+          where.notes = { contains: 'EU OPTION' }
+          break
+        case 'unlikely':
+          where.OR = [
+            { notes: { contains: 'UNLIKELY' } },
+            { notes: { contains: 'DIFFICULT' } }
+          ]
+          break
+        default:
+          // For Target, Match, Reach, Safety categories
+          where.category = category
+      }
     }
 
     // Get total count for pagination

@@ -18,6 +18,7 @@ export default function UniversitiesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCountry, setSelectedCountry] = useState('all')
   const [selectedTier, setSelectedTier] = useState('all')
+  const [selectedCategory, setSelectedCategory] = useState('all')
   const [sortBy, setSortBy] = useState('ranking')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -44,7 +45,7 @@ export default function UniversitiesPage() {
 
   useEffect(() => {
     fetchUniversities()
-  }, [searchTerm, selectedCountry, selectedTier, sortBy, currentPage])
+  }, [searchTerm, selectedCountry, selectedTier, selectedCategory, sortBy, currentPage])
 
   const fetchUniversities = async () => {
     try {
@@ -53,6 +54,7 @@ export default function UniversitiesPage() {
       if (searchTerm) params.append('search', searchTerm)
       if (selectedCountry !== 'all') params.append('countryId', selectedCountry)
       if (selectedTier !== 'all') params.append('tier', selectedTier)
+      if (selectedCategory !== 'all') params.append('category', selectedCategory)
       params.append('sortBy', sortBy)
       params.append('page', currentPage.toString())
       params.append('limit', '10')
@@ -364,19 +366,49 @@ export default function UniversitiesPage() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={selectedTier} onValueChange={(value) => {
-            setSelectedTier(value)
+          <Select value={selectedCategory} onValueChange={(value) => {
+            setSelectedCategory(value)
             setCurrentPage(1)
           }}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filter by tier" />
+            <SelectTrigger className="w-56">
+              <SelectValue placeholder="Filter by category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Tiers</SelectItem>
-              <SelectItem value="S">S-Tier (Best)</SelectItem>
-              <SelectItem value="A">A-Tier (Excellent)</SelectItem>
-              <SelectItem value="B">B-Tier (Good)</SelectItem>
-              <SelectItem value="C">C-Tier (Safety)</SelectItem>
+              <SelectItem value="all">All Universities</SelectItem>
+              <SelectItem value="best-fit">
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-600 rounded-full"></span>
+                  Best Fit (Top 15 for Damien)
+                </span>
+              </SelectItem>
+              <SelectItem value="stretch">
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-orange-600 rounded-full"></span>
+                  Stretch Goals (Ambitious)
+                </span>
+              </SelectItem>
+              <SelectItem value="safety">
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                  Safety Options (Very Likely)
+                </span>
+              </SelectItem>
+              <SelectItem value="eu-option">
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-purple-600 rounded-full"></span>
+                  EU Options (European)
+                </span>
+              </SelectItem>
+              <SelectItem value="unlikely">
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-red-600 rounded-full"></span>
+                  Unlikely (Need Higher Grades)
+                </span>
+              </SelectItem>
+              <SelectItem value="Target">Target Universities</SelectItem>
+              <SelectItem value="Match">Match Universities</SelectItem>
+              <SelectItem value="Reach">Reach Universities</SelectItem>
+              <SelectItem value="Safety">Safety Universities</SelectItem>
             </SelectContent>
           </Select>
           <Select value={sortBy} onValueChange={(value) => {
@@ -455,10 +487,73 @@ export default function UniversitiesPage() {
                   )}
                 </CardHeader>
               <CardContent className="space-y-3">
-                {/* Key Strengths */}
+                {/* Best Fit Ranking & Brief Summary */}
                 {university.notes && (
-                  <div className="text-xs text-gray-600 italic border-l-2 border-blue-400 pl-2">
-                    {university.notes.split('Ranking:')[1] || university.notes.substring(0, 100)}
+                  <div>
+                    {(() => {
+                      // Extract just the category label from the notes
+                      const lines = university.notes.split('\n');
+                      const categoryLine = lines[0];
+                      let categoryLabel = '';
+                      let briefSummary = '';
+                      let color = 'text-gray-600';
+
+                      // Extract category and summary
+                      if (categoryLine.includes('BEST FIT #')) {
+                        const match = categoryLine.match(/BEST FIT #(\d+)/);
+                        categoryLabel = `BEST FIT #${match?.[1] || ''}`;
+                        color = 'text-green-600 font-bold';
+                        briefSummary = 'Excellent match for your profile';
+                      } else if (categoryLine.includes('STRETCH #')) {
+                        const match = categoryLine.match(/STRETCH #(\d+)/);
+                        categoryLabel = `STRETCH #${match?.[1] || ''}`;
+                        color = 'text-orange-600 font-bold';
+                        briefSummary = 'Ambitious but possible';
+                      } else if (categoryLine.includes('SAFETY #')) {
+                        const match = categoryLine.match(/SAFETY #(\d+)/);
+                        categoryLabel = `SAFETY #${match?.[1] || ''}`;
+                        color = 'text-blue-600 font-bold';
+                        briefSummary = 'Strong backup option';
+                      } else if (categoryLine.includes('EU BEST FIT') || categoryLine.includes('EU OPTION')) {
+                        categoryLabel = categoryLine.split('-')[0].trim();
+                        color = 'text-purple-600 font-bold';
+                        briefSummary = 'European alternative';
+                      } else if (categoryLine.includes('UNLIKELY')) {
+                        categoryLabel = 'UNLIKELY';
+                        color = 'text-red-600 font-bold';
+                        briefSummary = 'Needs higher grades';
+                      } else if (categoryLine.includes('DIFFICULT')) {
+                        categoryLabel = 'VERY DIFFICULT';
+                        color = 'text-red-600 font-bold';
+                        briefSummary = 'Very challenging requirements';
+                      } else {
+                        // For simple categories from old data
+                        const firstPart = university.notes.split(' • ')[0];
+                        if (firstPart.includes('#')) {
+                          categoryLabel = firstPart.split(' • ')[0];
+                        } else {
+                          categoryLabel = firstPart;
+                        }
+                        briefSummary = university.notes.split(' • ').slice(1).join(' • ').substring(0, 80) || 'Worth considering';
+                      }
+
+                      // Extract key requirements if available
+                      const entryMatch = university.notes.match(/Entry[:\s]+([\w\s-]+)/);
+                      const ibMatch = university.notes.match(/(\d{2})\s*IB/);
+
+                      return (
+                        <>
+                          <div className={`text-sm mb-1 ${color}`}>
+                            {categoryLabel.includes('UNLIKELY') || categoryLabel.includes('DIFFICULT') ? '⚠️ ' : ''}
+                            {categoryLabel}
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            {briefSummary}
+                            {ibMatch && ` • ${ibMatch[1]} IB typical`}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -471,7 +566,7 @@ export default function UniversitiesPage() {
                     </div>
                   )}
 
-                  {university.entryRequirements && (
+                  {university.entryRequirements && university.entryRequirements.length < 50 && (
                     <div className="col-span-2">
                       <span className="text-gray-500">Entry:</span>
                       <span className="ml-1 text-xs">{university.entryRequirements}</span>

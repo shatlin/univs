@@ -11,9 +11,16 @@ import { Separator } from '@/components/ui/separator'
 import {
   GraduationCap, MapPin, Globe, Trophy, DollarSign, Calendar,
   FileText, Target, Briefcase, Home, AlertTriangle, CheckCircle,
-  Clock, Users, BookOpen, TrendingUp, Building, Star
+  Clock, Users, BookOpen, TrendingUp, Building, Star, Save, Plus, Trash2
 } from 'lucide-react'
 import Link from 'next/link'
+
+interface UniversityNote {
+  id: string
+  content: string
+  createdAt: string
+  updatedAt: string
+}
 
 interface UniversityDetail {
   id: string
@@ -65,11 +72,15 @@ interface UniversityDetail {
   courseName?: string
   notes?: string
 
+  // User's personal notes
+  userNotes?: string
+
   // Relations
   applications?: any[]
   courses?: any[]
   testRequirements?: any[]
   keyDates?: any[]
+  universityNotes?: UniversityNote[]
 }
 
 export default function UniversityDetailPage() {
@@ -78,6 +89,9 @@ export default function UniversityDetailPage() {
   const [university, setUniversity] = useState<UniversityDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
+  const [userNotes, setUserNotes] = useState('')
+  const [isSavingNotes, setIsSavingNotes] = useState(false)
+  const [newTimelineNote, setNewTimelineNote] = useState('')
 
   useEffect(() => {
     if (params.id) {
@@ -91,10 +105,73 @@ export default function UniversityDetailPage() {
       if (!res.ok) throw new Error('Failed to fetch university')
       const data = await res.json()
       setUniversity(data)
+      setUserNotes(data.userNotes || '')
     } catch (error) {
       console.error('Error fetching university:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const saveUserNotes = async () => {
+    if (!university) return
+    setIsSavingNotes(true)
+    try {
+      const res = await fetch(`/api/universities/${university.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userNotes })
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setUniversity(updated)
+        // Show success feedback
+        setTimeout(() => setIsSavingNotes(false), 1000)
+      } else {
+        setIsSavingNotes(false)
+      }
+    } catch (error) {
+      console.error('Error saving notes:', error)
+      setIsSavingNotes(false)
+    }
+  }
+
+  const addTimelineNote = async () => {
+    if (!university || !newTimelineNote.trim()) return
+    try {
+      const res = await fetch(`/api/universities/${university.id}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newTimelineNote })
+      })
+      if (res.ok) {
+        const note = await res.json()
+        setUniversity(prev => prev ? {
+          ...prev,
+          universityNotes: [note, ...(prev.universityNotes || [])]
+        } : null)
+        setNewTimelineNote('')
+      }
+    } catch (error) {
+      console.error('Error adding note:', error)
+    }
+  }
+
+
+  const deleteNote = async (noteId: string) => {
+    if (!university || !confirm('Are you sure you want to delete this note?')) return
+    try {
+      const res = await fetch(`/api/universities/${university.id}/notes?noteId=${noteId}`, {
+        method: 'DELETE'
+      })
+      if (res.ok) {
+        setUniversity(prev => prev ? {
+          ...prev,
+          universityNotes: prev.universityNotes?.filter(n => n.id !== noteId)
+        } : null)
+      }
+    } catch (error) {
+      console.error('Error deleting note:', error)
     }
   }
 
@@ -229,13 +306,14 @@ export default function UniversityDetailPage() {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid grid-cols-6 w-full">
+        <TabsList className="grid grid-cols-7 w-full">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="requirements">Requirements</TabsTrigger>
           <TabsTrigger value="courses">Courses</TabsTrigger>
           <TabsTrigger value="deadlines">Key Dates</TabsTrigger>
           <TabsTrigger value="career">Career Prospects</TabsTrigger>
           <TabsTrigger value="status">Status & Tasks</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -358,8 +436,44 @@ export default function UniversityDetailPage() {
                 )}
                 {university.notes && (
                   <div>
-                    <h4 className="font-medium mb-1">Notes</h4>
-                    <p className="text-sm text-gray-600">{university.notes}</p>
+                    <h4 className="font-medium mb-2">Detailed Analysis for Damien's Profile</h4>
+                    <div className="text-sm text-gray-600 whitespace-pre-wrap space-y-3">
+                      {university.notes.split('\n\n').map((section, idx) => {
+                        // Check if this is a heading (starts with emoji or special formatting)
+                        const isHeading = section.includes('📊') || section.includes('✅') ||
+                                        section.includes('⚠️') || section.includes('💡') ||
+                                        section.includes('❌') || section.includes('🎯');
+
+                        if (isHeading) {
+                          return (
+                            <div key={idx} className="font-semibold text-gray-800 dark:text-gray-200">
+                              {section}
+                            </div>
+                          );
+                        }
+
+                        // Format bullet points
+                        if (section.includes('•')) {
+                          return (
+                            <ul key={idx} className="space-y-1 ml-4">
+                              {section.split('\n').filter(line => line.includes('•')).map((line, lineIdx) => (
+                                <li key={lineIdx} className="flex">
+                                  <span className="mr-2">•</span>
+                                  <span>{line.replace('•', '').trim()}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          );
+                        }
+
+                        // Regular paragraph
+                        return (
+                          <p key={idx} className="leading-relaxed">
+                            {section}
+                          </p>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -791,6 +905,99 @@ export default function UniversityDetailPage() {
                   <p className="text-gray-500">No application started yet</p>
                   <Button>Start Application</Button>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Notes Tab */}
+        <TabsContent value="notes" className="space-y-4">
+          {/* Main User Notes */}
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>My Personal Notes</CardTitle>
+                <Button
+                  onClick={saveUserNotes}
+                  size="sm"
+                  disabled={isSavingNotes}
+                >
+                  <Save className="w-4 h-4 mr-1" />
+                  {isSavingNotes ? 'Saving...' : 'Save Notes'}
+                </Button>
+              </div>
+              <CardDescription>Your main notes and thoughts about this university</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <textarea
+                value={userNotes}
+                onChange={(e) => setUserNotes(e.target.value)}
+                placeholder="Write your personal notes here... Include thoughts, impressions, pros/cons, etc."
+                className="w-full h-48 p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800"
+              />
+            </CardContent>
+          </Card>
+
+          {/* Timeline Notes */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Timeline Notes</CardTitle>
+              <CardDescription>Quick notes with automatic timestamps</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Add New Note */}
+              <div className="space-y-3">
+                <textarea
+                  value={newTimelineNote}
+                  onChange={(e) => setNewTimelineNote(e.target.value)}
+                  placeholder="Add a quick note... (e.g., 'Called admissions office about requirements', 'Attended virtual open day - loved the CS department presentation')"
+                  className="w-full h-24 p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800"
+                />
+                <Button
+                  onClick={addTimelineNote}
+                  disabled={!newTimelineNote.trim()}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Note
+                </Button>
+              </div>
+
+              {/* Existing Notes List */}
+              {university?.universityNotes && university.universityNotes.length > 0 ? (
+                <div className="space-y-3 pt-4">
+                  <Separator />
+                  <div className="space-y-3">
+                    {university.universityNotes.map((note) => (
+                      <div key={note.id} className="p-4 border rounded-lg">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="text-xs text-gray-500">
+                            {new Date(note.createdAt).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => deleteNote(note.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                          {note.content}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-center text-gray-500 py-8">
+                  No timeline notes yet. Add your first note above!
+                </p>
               )}
             </CardContent>
           </Card>
