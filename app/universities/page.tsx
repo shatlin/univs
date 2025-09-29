@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { Globe, MapPin, GraduationCap, Trophy } from 'lucide-react'
+import { Globe, MapPin, GraduationCap, Trophy, Star } from 'lucide-react'
 
 export default function UniversitiesPage() {
   const [universities, setUniversities] = useState<any[]>([])
@@ -25,6 +25,7 @@ export default function UniversitiesPage() {
   const [totalUniversities, setTotalUniversities] = useState(0)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
   const [newUniversity, setNewUniversity] = useState({
     name: '',
     countryId: '',
@@ -45,7 +46,7 @@ export default function UniversitiesPage() {
 
   useEffect(() => {
     fetchUniversities()
-  }, [searchTerm, selectedCountry, selectedTier, selectedCategory, sortBy, currentPage])
+  }, [searchTerm, selectedCountry, selectedTier, selectedCategory, sortBy, currentPage, showFavoritesOnly])
 
   const fetchUniversities = async () => {
     try {
@@ -58,6 +59,11 @@ export default function UniversitiesPage() {
       params.append('sortBy', sortBy)
       params.append('page', currentPage.toString())
       params.append('limit', '10')
+
+      // Add favorites filter if enabled
+      if (showFavoritesOnly) {
+        params.append('favoritesOnly', 'true')
+      }
 
       const res = await fetch(`/api/universities?${params}`)
       const data = await res.json()
@@ -175,6 +181,26 @@ export default function UniversitiesPage() {
     }
   }
 
+  const toggleFavorite = async (universityId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+
+    try {
+      const res = await fetch(`/api/universities/${universityId}/favorite`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (res.ok) {
+        // Refresh the universities list to get the updated favorite status
+        await fetchUniversities()
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error)
+    }
+  }
+
   const getApplicationStatus = (applications: any[]) => {
     if (!applications || applications.length === 0) return null
     const latest = applications[applications.length - 1]
@@ -202,6 +228,17 @@ export default function UniversitiesPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant={showFavoritesOnly ? 'default' : 'outline'}
+            onClick={() => {
+              setShowFavoritesOnly(!showFavoritesOnly)
+              setCurrentPage(1)
+            }}
+            className="flex items-center gap-2"
+          >
+            <Star className={`h-4 w-4 ${showFavoritesOnly ? 'fill-current' : ''}`} />
+            {showFavoritesOnly ? 'All Universities' : 'Show Favorites'}
+          </Button>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button>Add University</Button>
@@ -359,11 +396,19 @@ export default function UniversitiesPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Countries</SelectItem>
-              {countries.map(country => (
-                <SelectItem key={country.id} value={country.id}>
-                  {country.flag} {country.name} ({country._count?.universities || 0})
-                </SelectItem>
-              ))}
+              {countries.map(country => {
+                // Count favorites for this country if in favorites mode
+                let count = country._count?.universities || 0
+                if (showFavoritesOnly) {
+                  // This is a simplified count - in production you might want to track this separately
+                  count = `${count}`
+                }
+                return (
+                  <SelectItem key={country.id} value={country.id}>
+                    {country.flag} {country.name} ({count})
+                  </SelectItem>
+                )
+              })}
             </SelectContent>
           </Select>
           <Select value={selectedCategory} onValueChange={(value) => {
@@ -438,9 +483,24 @@ export default function UniversitiesPage() {
           const applicationStatus = getApplicationStatus(university.applications)
           return (
               <Card key={university.id} className="hover:shadow-lg transition-shadow relative overflow-hidden">
+                {/* Favorite Star */}
+                <button
+                  onClick={(e) => toggleFavorite(university.id, e)}
+                  className="absolute top-2 right-2 z-20 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  aria-label={university.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  <Star
+                    className={`h-5 w-5 transition-colors ${
+                      university.isFavorite
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  />
+                </button>
+
                 {/* Tier Badge */}
                 {university.recommendationTier && (
-                  <div className="absolute top-2 right-2 z-10">
+                  <div className="absolute top-2 right-12 z-10">
                     <Badge className={getTierBadgeColor(university.recommendationTier)}>
                       {university.recommendationTier}-Tier
                     </Badge>
@@ -649,7 +709,11 @@ export default function UniversitiesPage() {
 
           {universities.length === 0 && !isLoading && (
             <div className="text-center py-12">
-              <p className="text-gray-500">No universities found. Try adjusting your filters or add a new university.</p>
+              <p className="text-gray-500">
+                {showFavoritesOnly
+                  ? 'No favorite universities found. Star some universities to add them to your favorites.'
+                  : 'No universities found. Try adjusting your filters or add a new university.'}
+              </p>
             </div>
           )}
 

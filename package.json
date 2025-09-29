@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:fresh": "./scripts/run-dev.sh",
     "build": "next build --turbopack",
     "start": "next start",
     "seed": "npx tsx prisma/seed.ts"

@@ -36,6 +36,7 @@ interface UniversityDetail {
   tier?: string
   category?: string
   website?: string
+  isFavorite?: boolean
 
   // Entry requirements
   entryRequirements?: string
@@ -154,6 +155,22 @@ export default function UniversityDetailPage() {
       }
     } catch (error) {
       console.error('Error adding note:', error)
+    }
+  }
+
+  const toggleFavorite = async () => {
+    if (!university) return
+    try {
+      const res = await fetch(`/api/universities/${university.id}/favorite`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setUniversity(updated)
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
     }
   }
 
@@ -276,6 +293,14 @@ export default function UniversityDetailPage() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant={university.isFavorite ? 'default' : 'outline'}
+              onClick={toggleFavorite}
+              className="flex items-center gap-2"
+            >
+              <Star className={`h-4 w-4 ${university.isFavorite ? 'fill-current' : ''}`} />
+              {university.isFavorite ? 'Favorited' : 'Add to Favorites'}
+            </Button>
             <Button variant="outline" onClick={() => router.push('/universities')}>
               Back to Universities
             </Button>
@@ -589,7 +614,7 @@ export default function UniversityDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle>Available Courses</CardTitle>
-              <CardDescription>Courses aligned with your preferences</CardDescription>
+              <CardDescription>Courses aligned with your preferences - Click course names to view on UCAS</CardDescription>
             </CardHeader>
             <CardContent>
               {university.courses && university.courses.length > 0 ? (
@@ -599,7 +624,21 @@ export default function UniversityDetailPage() {
                       <div className="space-y-2">
                         <div className="flex justify-between items-start">
                           <div>
-                            <h3 className="font-semibold">{course.name}</h3>
+                            {course.ucasUrl ? (
+                              <a
+                                href={course.ucasUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group"
+                              >
+                                <h3 className="font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline decoration-dotted underline-offset-2 flex items-center gap-1">
+                                  {course.name}
+                                  <Globe className="w-4 h-4 opacity-50 group-hover:opacity-100" />
+                                </h3>
+                              </a>
+                            ) : (
+                              <h3 className="font-semibold">{course.name}</h3>
+                            )}
                             {course.code && (
                               <p className="text-sm text-gray-600">Code: {course.code}</p>
                             )}
@@ -624,6 +663,19 @@ export default function UniversityDetailPage() {
                           <div>
                             <span className="text-sm font-medium">Career Paths: </span>
                             <span className="text-sm text-gray-600">{course.careerPaths}</span>
+                          </div>
+                        )}
+                        {course.ucasUrl && (
+                          <div className="pt-2">
+                            <a
+                              href={course.ucasUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                            >
+                              <Globe className="w-3 h-3" />
+                              View full course details on UCAS
+                            </a>
                           </div>
                         )}
                       </div>

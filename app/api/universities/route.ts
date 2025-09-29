@@ -11,8 +11,14 @@ export async function GET(request: NextRequest) {
     const tier = searchParams.get('tier')
     const category = searchParams.get('category')
     const sortBy = searchParams.get('sortBy') || 'ranking' // ranking, name, country
+    const favoritesOnly = searchParams.get('favoritesOnly') === 'true'
 
     const where: any = {}
+
+    // Filter for favorites if requested
+    if (favoritesOnly) {
+      where.isFavorite = true
+    }
 
     if (countryId) {
       where.countryId = countryId

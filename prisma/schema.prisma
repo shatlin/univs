@@ -43,6 +43,7 @@ model University {
 
   // User's personal notes
   userNotes         String?       // Main personal notes/description
+  isFavorite        Boolean       @default(false) // Favorite status
 
   // Additional fields for comprehensive info
   tier              String?       // Tier 1, Tier A, etc.
@@ -218,6 +219,7 @@ model Course {
   modules       String?    // Key modules/subjects
   careerPaths   String?    // Career opportunities
   prerequisites String?    // Prerequisites
+  ucasUrl       String?    // Direct UCAS course link
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 }
